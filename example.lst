@@ -1,0 +1,15 @@
+mads 1.9.9
+     1 				; WUDSN IDE Atari Rainbow Example - MADS syntax
+     2
+     3 				      org $4000 ;Start of code
+     4
+     5 FFFF> 4000-4013> A9 00	start lda #0 ;Disable screen DMA
+     6 4002 8D 2F 02		      sta 559
+     7 4005 AD 0B D4		loop  lda $d40b ;Load VCOUNT
+     8 4008 18			      clc
+     9 4009 65 14		      adc 20 ;Add counter
+    10 400B 8D 0A D4		      sta $d40a
+    11 400E 8D 1A D0		      sta $d01a ;Change background color
+    12 4011 4C 05 40		      jmp loop
+    13
+    14 02E0-02E1> 00 40		      run start ;Define run address
