@@ -1,14 +1,32 @@
-; WUDSN IDE Atari Rainbow Example - MADS syntax
+COLBAKS = 200
+EXITVBL = $e45f
+SETVBLV = $e45c
 
-	org $8000 ;Start of code
+		org $0600
+		
+	    dec 203
+        bne end
+        lda COLBAKS
+        clc
+        adc #2
+        sta COLBAKS
+        lda #50
+        sta 203
+end     jmp EXITVBL
 
-begin	nop
+begin   nop
+		lda #50
+		sta 203
+		pla
+        ldy #0
+        ldx #6
+        lda #7
+;		jmp SETVBLV
 
 pm	equ $a000	;od adresu `PM` bedzie nasz obszar na duchy i pociski
 py	equ 56		;pozycja Y naszego duszka (duszek nie porusza się w pionie)
 
 	opt h+
-	org $8000
 	
 	ldx #0
 petla	lda shape,x		;przepisujemy 25 bajtow z tablicy `SHAPE` pod adres `pm+$400+py`
@@ -50,4 +68,11 @@ shape	dta b(%00010000)
 		dta b(%10111010)
 		dta b(%10111010)
 
-		run begin ;start lda #0 ;Disable screen DMA
+
+
+
+
+
+
+        run begin
+	

@@ -1,15 +1,54 @@
 mads 1.9.9
      1 				; WUDSN IDE Atari Rainbow Example - MADS syntax
      2
-     3 				      org $4000 ;Start of code
+     3 					org $8000 ;Start of code
      4
-     5 FFFF> 4000-4013> A9 00	start lda #0 ;Disable screen DMA
-     6 4002 8D 2F 02		      sta 559
-     7 4005 AD 0B D4		loop  lda $d40b ;Load VCOUNT
-     8 4008 18			      clc
-     9 4009 65 14		      adc 20 ;Add counter
-    10 400B 8D 0A D4		      sta $d40a
-    11 400E 8D 1A D0		      sta $d01a ;Change background color
-    12 4011 4C 05 40		      jmp loop
-    13
-    14 02E0-02E1> 00 40		      run start ;Define run address
+     5 FFFF> 8000-8000> EA	begin	nop
+     6
+     7 = A000			pm	equ $a000	;od adresu `PM` bedzie nasz obszar na duchy i pociski
+     8 = 0038			py	equ 56		;pozycja Y naszego duszka (duszek nie porusza się w pionie)
+     9
+    10 					opt h+
+    11 8001				org $8000
+    12 					
+    13 8000-803F> A2 00			ldx #0
+    14 8002 BD 31 80		petla	lda shape,x		;przepisujemy 25 bajtow z tablicy `SHAPE` pod adres `pm+$400+py`
+    15 8005 9D 38 A4			sta pm+$400+py,x	;w tej tablicy znajduja sie dane opisujace ksztalt duszka
+    16 8008 E8				inx
+    17 8009 E0 19			cpx #$19
+    18 800B D0 F5			bne petla
+    19
+    20 800D A9 A0			lda >pm
+    21 800F 8D 07 D4			sta $d407	;PMBASE - starszy adres obszaru z duchami
+    22 8012 A0 02			ldy #2
+    23 8014 8C 1D D0			sty $d01d	;PMCTL - czy wyswietlic duchy lub pociski, czy oba razem
+    24 8017 88				dey
+    25 8018 8C 6F 02			sty 623		;GTICTLS - piorytet kolorów
+    26 801B 88				dey
+    27 801C 8C 08 D0			sty $d008	;SIZEP0 - szerokość
+    28 801F A9 0E			lda #$e
+    29 8021 8D C0 02			sta 704		;cien rejestru koloru gracza0
+    30 8024 A9 3A			lda #%00111010
+    31 8026 8D 2F 02			sta 559		;DMACTLS - dostep do pamieci dla duchow i pociskow wg odpowiednich bitow
+    32 					
+    33 8029 A5 14		animka	lda 20		;pozycja pozioma bedzie wartosc z zegara systemowego
+    34 802B 8D 00 D0			sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
+    35 802E 4C 29 80			jmp animka
+    36 					
+    37 8031 10			shape	dta b(%00010000)
+    38 8032 10					dta b(%00010000)
+    39 8033 10					dta b(%00010000)
+    40 8034 10					dta b(%00010000)
+    41 8035 10					dta b(%00010000)
+    42 8036 38					dta b(%00111000)
+    43 8037 38					dta b(%00111000)
+    44 8038 38					dta b(%00111000)
+    45 8039 38					dta b(%00111000)
+    46 803A 7C					dta b(%01111100)
+    47 803B 7C					dta b(%01111100)
+    48 803C 7C					dta b(%01111100)
+    49 803D FE					dta b(%11111110)
+    50 803E BA					dta b(%10111010)
+    51 803F BA					dta b(%10111010)
+    52
+    53 02E0-02E1> 00 80				run begin ;start lda #0 ;Disable screen DMA
