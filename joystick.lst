@@ -1,0 +1,72 @@
+mads 1.9.9
+     1 = 0080			spritex = $80
+     2 = 0060			spritey = $60
+     3
+     4 					org $0801
+     5 FFFF> 0801-080F> 0E 08 + sprite1 dta b($0E, $08, $0A, $00, $9E, $20, $28, $32, $30, $36, $34, $29, $00, $00, $00)
+     6
+     7 0810				org $3000
+     8 3000-300E> 0E 08 0A 00 + sprite2 dta b($0E, $08, $0A, $00, $9E, $20, $28, $32, $30, $36, $34, $29, $00, $00, $00)
+     9
+    10
+    11 				;=$3000 ;location dove inizia il puntatore per gli sprite
+    12 				;incbin "mariocolor.bin"
+    13
+    14
+    15 				;=$0810 ;location dove inizia il puntatore per il progra mma
+    16
+    17 300F				org $0810
+    18 0810-086D> A9 01		begin	lda #$1 ;A=1
+    19 0812 8D 25 D0			sta $d025 ;POKE53285,1 (multicolor 01) A=1 =colore bianco)
+    20 0815 A9 0C			lda #$C ;C=12
+    21 0817 8D 26 D0			sta $d026 ;POKE53286,c (multicolor 11) C=12 =colore grigio)
+    22
+    23 081A A9 93			lda #147 ;cancella lo schermo
+    24 081C 20 D2 FF			jsr $ffd2 ;chiamata alla routina per stampare cancella schermo
+    25
+    26 081F A9 07			lda #$07 ;A=7
+    27 0821 8D 20 D0			sta $d020 ;53280,7 (7 = giallo colora il bordo di giallo)
+    28 0824 A9 06			lda #$06 ;A=6
+    29 0826 8D 21 D0			sta $d021 ;53281,6 (6 = blue colora lo sfondo di blue)
+    30
+    31 0829 AD 15 D0			LDA $D015 ;A=peek(53269) (registro abilitazioni sprite)
+    32 082C 09 01			ORA #$01 ;sprite 0 e 1 (valore 3)
+    33 082E 8D 15 D0			sta $d015 ;poke53269,peek(53269) ORA 3 (abilita lo sprite 0 e 1)
+    34
+    35 0831 AD 1C D0			lda $D01c ;A=peek(53276) (registro abilitazioni sprite multicolore)
+    36 0834 09 01			ora #$01 ;sprite 0 e 2(valore 3)
+    37 0836 8D 1C D0			sta $d01c ;Poke53276,peek(53276) ORA 3 (abilita in Multicolore lo sprite 0 e 1)
+    38
+    39 					;"MARIOCOLOR.bin" SPRITE 0 (192x64 = 12288 ($3000)
+    40 0839 A9 C0			lda #$c0 ;a=192($c0= 192 dec.) –punta all indirizzo $3000
+    41
+    42 083B 8D F8 07			sta $07f8 ;poke2040,192 ($07f8 = 2040 dec) ottiene i dati per lo sprite 0 dalla location 192
+    43
+    44 083E A9 02			lda #$2 ;2 red (BERETTO)
+    45 0840 8D 27 D0			sta $d027 ;POKE53287,2 - colore sprire 0
+    46
+    47
+    48 0843 A5 80			lda spritex
+    49 0845 8D 00 D0			sta $d000 ;poke 53248,spritex
+    50 0848 A5 60			lda spritey
+    51 084A 8D 01 D0			sta $d001 ;poke 53249,spritey
+    52
+    53 084D A9 FF		goto lda#$ff
+    54 084F CD 12 D0			cmp $d012
+    55 0852 D0 F9			bne goto
+    56
+    57
+    58 0854 AD 00 DC		left lda $dc00 ;A=peek(56320)
+    59 0857 29 04			and #$4
+    60 0859 D0 06			bne right ;if diverso da 0 salta al right
+    61 085B CE 00 D0			dec $d000
+    62 085E 4C 4D 08			jmp goto
+    63
+    64
+    65 0861 AD 00 DC		right lda$dc00 ;A=peek(56320)
+    66 0864 29 08			and #$8
+    67 0866 D0 EC			bne left ;if diverso da 0 salta a left
+    68 0868 EE 00 D0			inc $d000
+    69 086B 4C 4D 08			jmp goto
+    70
+    71 02E0-02E1> 10 08			run begin 

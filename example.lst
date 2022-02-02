@@ -3,52 +3,66 @@ mads 1.9.9
      2
      3 					org $8000 ;Start of code
      4
-     5 FFFF> 8000-8000> EA	begin	nop
+     5 FFFF> 8000-8045> EA	begin	nop
      6
      7 = A000			pm	equ $a000	;od adresu `PM` bedzie nasz obszar na duchy i pociski
-     8 = 0038			py	equ 56		;pozycja Y naszego duszka (duszek nie porusza się w pionie)
+     8 = 00C8			py	equ 200		;pozycja Y naszego duszka (duszek nie porusza się w pionie)
      9
     10 					opt h+
-    11 8001				org $8000
-    12 					
-    13 8000-803F> A2 00			ldx #0
-    14 8002 BD 31 80		petla	lda shape,x		;przepisujemy 25 bajtow z tablicy `SHAPE` pod adres `pm+$400+py`
-    15 8005 9D 38 A4			sta pm+$400+py,x	;w tej tablicy znajduja sie dane opisujace ksztalt duszka
-    16 8008 E8				inx
-    17 8009 E0 19			cpx #$19
-    18 800B D0 F5			bne petla
-    19
-    20 800D A9 A0			lda >pm
-    21 800F 8D 07 D4			sta $d407	;PMBASE - starszy adres obszaru z duchami
-    22 8012 A0 02			ldy #2
-    23 8014 8C 1D D0			sty $d01d	;PMCTL - czy wyswietlic duchy lub pociski, czy oba razem
-    24 8017 88				dey
-    25 8018 8C 6F 02			sty 623		;GTICTLS - piorytet kolorów
-    26 801B 88				dey
-    27 801C 8C 08 D0			sty $d008	;SIZEP0 - szerokość
-    28 801F A9 0E			lda #$e
-    29 8021 8D C0 02			sta 704		;cien rejestru koloru gracza0
-    30 8024 A9 3A			lda #%00111010
-    31 8026 8D 2F 02			sta 559		;DMACTLS - dostep do pamieci dla duchow i pociskow wg odpowiednich bitow
-    32 					
-    33 8029 A5 14		animka	lda 20		;pozycja pozioma bedzie wartosc z zegara systemowego
-    34 802B 8D 00 D0			sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
-    35 802E 4C 29 80			jmp animka
-    36 					
-    37 8031 10			shape	dta b(%00010000)
-    38 8032 10					dta b(%00010000)
-    39 8033 10					dta b(%00010000)
-    40 8034 10					dta b(%00010000)
-    41 8035 10					dta b(%00010000)
-    42 8036 38					dta b(%00111000)
-    43 8037 38					dta b(%00111000)
-    44 8038 38					dta b(%00111000)
-    45 8039 38					dta b(%00111000)
-    46 803A 7C					dta b(%01111100)
-    47 803B 7C					dta b(%01111100)
-    48 803C 7C					dta b(%01111100)
-    49 803D FE					dta b(%11111110)
-    50 803E BA					dta b(%10111010)
-    51 803F BA					dta b(%10111010)
-    52
-    53 02E0-02E1> 00 80				run begin ;start lda #0 ;Disable screen DMA
+    11 8001 A2 00			ldx #0
+    12 8003 A9 A0			lda >pm
+    13 8005 8D 07 D4			sta $d407	;PMBASE - starszy adres obszaru z duchami
+    14 8008 A0 02			ldy #2
+    15 800A 8C 1D D0			sty $d01d	;PMCTL - czy wyswietlic duchy lub pociski, czy oba razem
+    16 800D 88				dey
+    17 800E 8C 6F 02			sty 623		;GTICTLS - piorytet kolorów
+    18 8011 88				dey
+    19 8012 8C 08 D0			sty $d008	;SIZEP0 - szerokość
+    20 8015 A9 0E			lda #$e
+    21 8017 8D C0 02			sta 704		;cien rejestru koloru gracza0
+    22 801A A9 3A			lda #%00111010
+    23 801C 8D 2F 02			sta 559		;DMACTLS - dostep do pamieci dla duchow i pociskow wg odpowiednich bitow
+    24 					
+    25 801F A9 78			lda #120		;pozycja pozioma bedzie wartosc z zegara systemowego
+    26 8021 8D 00 D0			sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
+    27
+    28 8024 EA			animka nop
+    29 8025 AE 78 02			ldx $278 ; Joystick position 
+    30 8028 E0 0B			cpx #11
+    31 802A F0 08			beq left ;if diverso da 0 salta al right
+    32 802C E0 07			cpx #7
+    33 802E F0 0D			beq right ;if diverso da 0 salta a left
+    34 8030 E0 00			cpx #0
+    35 8032 D0 F0			bne animka
+    36
+    37 8034 EA			left nop 	
+    38 				;	dec $d000
+    39 8035 A9 32			lda #50		;pozycja pozioma bedzie wartosc z zegara systemowego
+    40 8037 8D 00 D0			sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
+    41 803A 4C 24 80			 jmp animka
+    42 					
+    43 803D EA			right nop	
+    44 				;	inc $d000
+    45 803E A9 BE			lda #190		;pozycja pozioma bedzie wartosc z zegara systemowego
+    46 8040 8D 00 D0			sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
+    47
+    48 8043 4C 24 80			jmp animka
+    49
+    50 8046				org pm + $400 + py	
+    51 A4C8-A4D6> 10		shape	dta b(%00010000)
+    52 A4C9 10					dta b(%00010000)
+    53 A4CA 10					dta b(%00010000)
+    54 A4CB 10					dta b(%00010000)
+    55 A4CC 10					dta b(%00010000)
+    56 A4CD 38					dta b(%00111000)
+    57 A4CE 38					dta b(%00111000)
+    58 A4CF 38					dta b(%00111000)
+    59 A4D0 38					dta b(%00111000)
+    60 A4D1 7C					dta b(%01111100)
+    61 A4D2 7C					dta b(%01111100)
+    62 A4D3 7C					dta b(%01111100)
+    63 A4D4 FE					dta b(%11111110)
+    64 A4D5 BA					dta b(%10111010)
+    65 A4D6 BA					dta b(%10111010)
+    66
+    67 02E0-02E1> 00 80				run begin

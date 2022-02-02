@@ -5,18 +5,10 @@
 begin	nop
 
 pm	equ $a000	;od adresu `PM` bedzie nasz obszar na duchy i pociski
-py	equ 56		;pozycja Y naszego duszka (duszek nie porusza się w pionie)
+py	equ 200		;pozycja Y naszego duszka (duszek nie porusza się w pionie)
 
 	opt h+
-	org $8000
-	
 	ldx #0
-petla	lda shape,x		;przepisujemy 25 bajtow z tablicy `SHAPE` pod adres `pm+$400+py`
-	sta pm+$400+py,x	;w tej tablicy znajduja sie dane opisujace ksztalt duszka
-	inx
-	cpx #$19
-	bne petla
-
 	lda >pm
 	sta $d407	;PMBASE - starszy adres obszaru z duchami
 	ldy #2
@@ -30,10 +22,32 @@ petla	lda shape,x		;przepisujemy 25 bajtow z tablicy `SHAPE` pod adres `pm+$400+
 	lda #%00111010
 	sta 559		;DMACTLS - dostep do pamieci dla duchow i pociskow wg odpowiednich bitow
 	
-animka	lda 20		;pozycja pozioma bedzie wartosc z zegara systemowego
+	lda #120		;pozycja pozioma bedzie wartosc z zegara systemowego
 	sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
-	jmp animka
+
+animka nop
+	ldx $278 ; Joystick position 
+	cpx #11
+	beq left ;if diverso da 0 salta al right
+	cpx #7
+	beq right ;if diverso da 0 salta a left
+	cpx #0
+	bne animka
+
+left nop 	
+;	dec $d000
+	lda #50		;pozycja pozioma bedzie wartosc z zegara systemowego
+	sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
+	 jmp animka
 	
+right nop	
+;	inc $d000
+	lda #190		;pozycja pozioma bedzie wartosc z zegara systemowego
+	sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
+
+	jmp animka
+
+	org pm + $400 + py	
 shape	dta b(%00010000)
 		dta b(%00010000)
 		dta b(%00010000)
@@ -50,4 +64,4 @@ shape	dta b(%00010000)
 		dta b(%10111010)
 		dta b(%10111010)
 
-		run begin ;start lda #0 ;Disable screen DMA
+		run begin

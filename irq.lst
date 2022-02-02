@@ -1,79 +1,44 @@
 mads 1.9.9
-     1 = 00C8			COLBAKS = 200
-     2 = E45F			EXITVBL = $e45f
-     3 = E45C			SETVBLV = $e45c
-     4
-     5 						org $0600
-     6 						
-     7 FFFF> 0600-065D> C6 CB		    dec 203
-     8 0602 D0 0B		        bne end
-     9 0604 A5 C8		        lda COLBAKS
-    10 0606 18			        clc
-    11 0607 69 02		        adc #2
-    12 0609 85 C8		        sta COLBAKS
-    13 060B A9 32		        lda #50
-    14 060D 85 CB		        sta 203
-    15 060F 4C 5F E4		end     jmp EXITVBL
-    16
-    17 0612 EA			begin   nop
-    18 0613 A9 32				lda #50
-    19 0615 85 CB				sta 203
-    20 0617 68					pla
-    21 0618 A0 00		        ldy #0
-    22 061A A2 06		        ldx #6
-    23 061C A9 07		        lda #7
-    24 				;		jmp SETVBLV
-    25
-    26 = A000			pm	equ $a000	;od adresu `PM` bedzie nasz obszar na duchy i pociski
-    27 = 0038			py	equ 56		;pozycja Y naszego duszka (duszek nie porusza się w pionie)
-    28
-    29 					opt h+
-    30 					
-    31 061E A2 00			ldx #0
-    32 0620 BD 4F 06		petla	lda shape,x		;przepisujemy 25 bajtow z tablicy `SHAPE` pod adres `pm+$400+py`
-    33 0623 9D 38 A4			sta pm+$400+py,x	;w tej tablicy znajduja sie dane opisujace ksztalt duszka
-    34 0626 E8				inx
-    35 0627 E0 19			cpx #$19
-    36 0629 D0 F5			bne petla
-    37
-    38 062B A9 A0			lda >pm
-    39 062D 8D 07 D4			sta $d407	;PMBASE - starszy adres obszaru z duchami
-    40 0630 A0 02			ldy #2
-    41 0632 8C 1D D0			sty $d01d	;PMCTL - czy wyswietlic duchy lub pociski, czy oba razem
-    42 0635 88				dey
-    43 0636 8C 6F 02			sty 623		;GTICTLS - piorytet kolorów
-    44 0639 88				dey
-    45 063A 8C 08 D0			sty $d008	;SIZEP0 - szerokość
-    46 063D A9 0E			lda #$e
-    47 063F 8D C0 02			sta 704		;cien rejestru koloru gracza0
-    48 0642 A9 3A			lda #%00111010
-    49 0644 8D 2F 02			sta 559		;DMACTLS - dostep do pamieci dla duchow i pociskow wg odpowiednich bitow
-    50 					
-    51 0647 A5 14		animka	lda 20		;pozycja pozioma bedzie wartosc z zegara systemowego
-    52 0649 8D 00 D0			sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
-    53 064C 4C 47 06			jmp animka
-    54 					
-    55 064F 10			shape	dta b(%00010000)
-    56 0650 10					dta b(%00010000)
-    57 0651 10					dta b(%00010000)
-    58 0652 10					dta b(%00010000)
-    59 0653 10					dta b(%00010000)
-    60 0654 38					dta b(%00111000)
-    61 0655 38					dta b(%00111000)
-    62 0656 38					dta b(%00111000)
-    63 0657 38					dta b(%00111000)
-    64 0658 7C					dta b(%01111100)
-    65 0659 7C					dta b(%01111100)
-    66 065A 7C					dta b(%01111100)
-    67 065B FE					dta b(%11111110)
-    68 065C BA					dta b(%10111010)
-    69 065D BA					dta b(%10111010)
-    70
-    71
-    72
-    73
-    74
-    75
-    76
-    77 02E0-02E1> 12 06		        run begin
-    78 					
+     1 						org $0600
+     2 FFFF> 0600-0640> EA	begin   nop
+     3 = A000			pm	equ $a000	;od adresu `PM` bedzie nasz obszar na duchy i pociski
+     4 = 0038			py	equ 56		;pozycja Y naszego duszka (duszek nie porusza się w pionie)
+     5 					opt h+
+     6 0601 A2 00			ldx #0
+     7 0603 BD 32 06		petla	lda shape,x		;przepisujemy 25 bajtow z tablicy `SHAPE` pod adres `pm+$400+py`
+     8 0606 9D 38 A4			sta pm+$400+py,x	;w tej tablicy znajduja sie dane opisujace ksztalt duszka
+     9 0609 E8				inx
+    10 060A E0 19			cpx #$19
+    11 060C D0 F5			bne petla
+    12 060E A9 A0			lda >pm
+    13 0610 8D 07 D4			sta $d407	;PMBASE - starszy adres obszaru z duchami
+    14 0613 A0 02			ldy #2
+    15 0615 8C 1D D0			sty $d01d	;PMCTL - czy wyswietlic duchy lub pociski, czy oba razem
+    16 0618 88				dey
+    17 0619 8C 6F 02			sty 623		;GTICTLS - piorytet kolorów
+    18 061C 88				dey
+    19 061D 8C 08 D0			sty $d008	;SIZEP0 - szerokość
+    20 0620 A9 0E			lda #$e
+    21 0622 8D C0 02			sta 704		;cien rejestru koloru gracza0
+    22 0625 A9 3A			lda #%00111010
+    23 0627 8D 2F 02			sta 559		;DMACTLS - dostep do pamieci dla duchow i pociskow wg odpowiednich bitow
+    24 062A A9 50		animka	lda #80		;pozycja pozioma bedzie wartosc z zegara systemowego
+    25 062C 8D 00 D0			sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
+    26 062F 4C 2A 06			jmp animka
+    27 					
+    28 0632 10			shape	dta b(%00010000)
+    29 0633 10					dta b(%00010000)
+    30 0634 10					dta b(%00010000)
+    31 0635 10					dta b(%00010000)
+    32 0636 10					dta b(%00010000)
+    33 0637 38					dta b(%00111000)
+    34 0638 38					dta b(%00111000)
+    35 0639 38					dta b(%00111000)
+    36 063A 38					dta b(%00111000)
+    37 063B 7C					dta b(%01111100)
+    38 063C 7C					dta b(%01111100)
+    39 063D 7C					dta b(%01111100)
+    40 063E FE					dta b(%11111110)
+    41 063F BA					dta b(%10111010)
+    42 0640 BA					dta b(%10111010)
+    43 02E0-02E1> 00 06		        run begin
