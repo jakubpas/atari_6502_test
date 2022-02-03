@@ -3,52 +3,52 @@ mads 1.9.9
      2
      3 					org $8000 ;Start of code
      4
-     5 FFFF> 8000-8045> EA	begin	nop
-     6
-     7 = A000			pm	equ $a000	;od adresu `PM` bedzie nasz obszar na duchy i pociski
-     8 = 00C8			py	equ 200		;pozycja Y naszego duszka (duszek nie porusza się w pionie)
-     9
-    10 					opt h+
-    11 8001 A2 00			ldx #0
-    12 8003 A9 A0			lda >pm
-    13 8005 8D 07 D4			sta $d407	;PMBASE - starszy adres obszaru z duchami
-    14 8008 A0 02			ldy #2
-    15 800A 8C 1D D0			sty $d01d	;PMCTL - czy wyswietlic duchy lub pociski, czy oba razem
-    16 800D 88				dey
-    17 800E 8C 6F 02			sty 623		;GTICTLS - piorytet kolorów
-    18 8011 88				dey
-    19 8012 8C 08 D0			sty $d008	;SIZEP0 - szerokość
-    20 8015 A9 0E			lda #$e
-    21 8017 8D C0 02			sta 704		;cien rejestru koloru gracza0
-    22 801A A9 3A			lda #%00111010
-    23 801C 8D 2F 02			sta 559		;DMACTLS - dostep do pamieci dla duchow i pociskow wg odpowiednich bitow
-    24 					
-    25 801F A9 78			lda #120		;pozycja pozioma bedzie wartosc z zegara systemowego
-    26 8021 8D 00 D0			sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
-    27
-    28 8024 EA			animka nop
-    29 8025 AE 78 02			ldx $278 ; Joystick position 
-    30 8028 E0 0B			cpx #11
-    31 802A F0 08			beq left ;if diverso da 0 salta al right
-    32 802C E0 07			cpx #7
-    33 802E F0 0D			beq right ;if diverso da 0 salta a left
-    34 8030 E0 00			cpx #0
-    35 8032 D0 F0			bne animka
-    36
-    37 8034 EA			left nop 	
-    38 				;	dec $d000
-    39 8035 A9 32			lda #50		;pozycja pozioma bedzie wartosc z zegara systemowego
-    40 8037 8D 00 D0			sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
-    41 803A 4C 24 80			 jmp animka
-    42 					
-    43 803D EA			right nop	
-    44 				;	inc $d000
-    45 803E A9 BE			lda #190		;pozycja pozioma bedzie wartosc z zegara systemowego
-    46 8040 8D 00 D0			sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
+     5 				begin
+     6 = A000			pm = $a000	    ;od adresu `PM` bedzie nasz obszar na duchy i pociski
+     7 = 00C8			py = 200		;pozycja Y naszego duszka (duszek nie porusza się w pionie)
+     8 = D000			HPOSP0 = $d000   ;HPOSP0 - pozycja pozioma duszka nr 0
+     9 = 6000			POS = $6000
+    10 = 6001			DEL = $6001 ; Stores value of move delay
+    11
+    12 FFFF> 8000-804E> A2 00		ldx #0
+    13 8002 A9 A0			lda >pm
+    14 8004 8D 07 D4			sta $d407	;PMBASE - starszy adres obszaru z duchami
+    15 8007 A0 02			ldy #2
+    16 8009 8C 1D D0			sty $d01d	;PMCTL - czy wyswietlic duchy lub pociski, czy oba razem
+    17 800C A9 0E			lda #$e
+    18 800E 8D C0 02			sta 704		;cien rejestru koloru gracza0
+    19 8011 A9 3A			lda #%00111010
+    20 8013 8D 2F 02			sta 559		;DMACTLS - dostep do pamieci dla duchow i pociskow wg odpowiednich bitow
+    21 8016 A9 78			lda #120
+    22 8018 8D 00 D0			sta HPOSP0
+    23 801B 8D 00 60			sta POS	
+    24 801E			loop
+    25 801E CE 01 60			dec DEL
+    26 8021 AE 01 60			ldx DEL
+    27 8024 E0 00			cpx #0
+    28 8026 D0 F6			bne loop
+    29 					
+    30 8028 AE 78 02			ldx $278 ; Joystick position 
+    31 802B E0 0B			cpx #11
+    32 802D F0 08			beq left 
+    33 802F E0 07			cpx #7
+    34 8031 F0 10			beq right
+    35 8033 E0 00			cpx #0
+    36 8035 D0 E7			bne loop
+    37 8037			left 	
+    38 8037 CE 00 60			dec POS
+    39 803A AD 00 60			lda POS
+    40 803D 8D 00 D0			sta HPOSP0
+    41 8040 4C 1E 80			jmp loop
+    42 8043			right	
+    43 8043 EE 00 60			inc POS
+    44 8046 AD 00 60			lda POS
+    45 8049 8D 00 D0			sta HPOSP0
+    46 804C 4C 1E 80			jmp loop
     47
-    48 8043 4C 24 80			jmp animka
+    48 804F			finish
     49
-    50 8046				org pm + $400 + py	
+    50 804F				org pm + $400 + py	
     51 A4C8-A4D6> 10		shape	dta b(%00010000)
     52 A4C9 10					dta b(%00010000)
     53 A4CA 10					dta b(%00010000)

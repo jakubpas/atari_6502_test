@@ -2,50 +2,50 @@
 
 	org $8000 ;Start of code
 
-begin	nop
+begin
+pm = $a000	    ;od adresu `PM` bedzie nasz obszar na duchy i pociski
+py = 200		;pozycja Y naszego duszka (duszek nie porusza się w pionie)
+HPOSP0 = $d000   ;HPOSP0 - pozycja pozioma duszka nr 0
+POS = $6000
+DEL = $6001 ; Stores value of move delay
 
-pm	equ $a000	;od adresu `PM` bedzie nasz obszar na duchy i pociski
-py	equ 200		;pozycja Y naszego duszka (duszek nie porusza się w pionie)
-
-	opt h+
 	ldx #0
 	lda >pm
 	sta $d407	;PMBASE - starszy adres obszaru z duchami
 	ldy #2
 	sty $d01d	;PMCTL - czy wyswietlic duchy lub pociski, czy oba razem
-	dey
-	sty 623		;GTICTLS - piorytet kolorów
-	dey
-	sty $d008	;SIZEP0 - szerokość
 	lda #$e
 	sta 704		;cien rejestru koloru gracza0
 	lda #%00111010
 	sta 559		;DMACTLS - dostep do pamieci dla duchow i pociskow wg odpowiednich bitow
+	lda #120
+	sta HPOSP0
+	sta POS	
+loop
+	dec DEL
+	ldx DEL
+	cpx #0
+	bne loop
 	
-	lda #120		;pozycja pozioma bedzie wartosc z zegara systemowego
-	sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
-
-animka nop
 	ldx $278 ; Joystick position 
 	cpx #11
-	beq left ;if diverso da 0 salta al right
+	beq left 
 	cpx #7
-	beq right ;if diverso da 0 salta a left
+	beq right
 	cpx #0
-	bne animka
+	bne loop
+left 	
+	dec POS
+	lda POS
+	sta HPOSP0
+	jmp loop
+right	
+	inc POS
+	lda POS
+	sta HPOSP0
+	jmp loop
 
-left nop 	
-;	dec $d000
-	lda #50		;pozycja pozioma bedzie wartosc z zegara systemowego
-	sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
-	 jmp animka
-	
-right nop	
-;	inc $d000
-	lda #190		;pozycja pozioma bedzie wartosc z zegara systemowego
-	sta $d000	;HPOSP0 - pozycja pozioma duszka nr 0
-
-	jmp animka
+finish
 
 	org pm + $400 + py	
 shape	dta b(%00010000)
