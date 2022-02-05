@@ -1,0 +1,5 @@
+.idea
+.project
+*.lab
+*.lst
+*.xex

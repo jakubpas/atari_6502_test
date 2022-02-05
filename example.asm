@@ -1,27 +1,26 @@
-; WUDSN IDE Atari Rainbow Example - MADS syntax
+	icl "ANTIC.asm"
 
-	org $8000 ;Start of code
+    org $8000 ;Start of code
 
-begin
-pm = $a000	    ;od adresu `PM` bedzie nasz obszar na duchy i pociski
-py = 200		;pozycja Y naszego duszka (duszek nie porusza się w pionie)
-HPOSP0 = $d000   ;HPOSP0 - pozycja pozioma duszka nr 0
-POS = $6000
-DEL = $6001 ; Stores value of move delay
+begin:
+    pm = $a000 ; Player/Missile start address
+    py = 0200 ; Vertical position of player0
+    HPOSP0 = $d000   ;HPOSP0 - horizontal position of player0 (shadow registry)
+    px = $6000 ; Stores value of player0 horizontal position
+    DEL = $6001 ; Stores value of move delay
 
-	ldx #0
 	lda >pm
 	sta $d407	;PMBASE - starszy adres obszaru z duchami
-	ldy #2
-	sty $d01d	;PMCTL - czy wyswietlic duchy lub pociski, czy oba razem
-	lda #$e
-	sta 704		;cien rejestru koloru gracza0
-	lda #%00111010
-	sta 559		;DMACTLS - dostep do pamieci dla duchow i pociskow wg odpowiednich bitow
+	ldy #2 ; Show both player and missiles
+	sty $d01d ;PMCTL Player/Missile control
+	lda #$e ; Player0 color (white)
+	sta 704	; shadow registry of player0 color
+	lda #%00111010 ; Player/Missile configuration bits settings
+	sta 559		;DMACTLS - registry of Player/Missile settings
 	lda #120
 	sta HPOSP0
-	sta POS	
-loop
+	sta px
+loop:
 	dec DEL
 	ldx DEL
 	cpx #0
@@ -34,34 +33,31 @@ loop
 	beq right
 	cpx #0
 	bne loop
-left 	
-	dec POS
-	lda POS
+left:
+	dec px
+	lda px
 	sta HPOSP0
 	jmp loop
-right	
-	inc POS
-	lda POS
+right:
+	inc px
+	lda px
 	sta HPOSP0
 	jmp loop
 
-finish
-
-	org pm + $400 + py	
-shape	dta b(%00010000)
-		dta b(%00010000)
-		dta b(%00010000)
-		dta b(%00010000)
-		dta b(%00010000)
-		dta b(%00111000)
-		dta b(%00111000)
-		dta b(%00111000)
-		dta b(%00111000)
-		dta b(%01111100)
-		dta b(%01111100)
-		dta b(%01111100)
-		dta b(%11111110)
-		dta b(%10111010)
-		dta b(%10111010)
-
-		run begin
+	org pm + $400 + py
+    dta b(%00010000)
+	dta b(%00010000)
+	dta b(%00010000)
+	dta b(%00010000)
+	dta b(%00010000)
+	dta b(%00111000)
+	dta b(%00111000)
+	dta b(%00111000)
+	dta b(%00111000)
+	dta b(%01111100)
+	dta b(%01111100)
+	dta b(%01111100)
+	dta b(%11111110)
+	dta b(%10111010)
+	dta b(%10111010)
+	run begin
