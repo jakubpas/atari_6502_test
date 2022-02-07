@@ -5,14 +5,18 @@ begin:
     pm = $a000      ; Player/Missile start address
     py = 200        ; Player0 vertical position
     p1yi = 10       ; Player1 vertical position
+    p2yi = 25       ; Player2 vertical position
     HPOSP0 = $d000  ; HPOSP0 - horizontal position of player0 (shadow registry)
-    HSPOS1 = $d001  ; HPOSP0 - horizontal position of player0 (shadow registry)
+    HSPOS1 = $d001  ; HPOSP0 - horizontal position of player1 (shadow registry)
     px = $6000      ; Stores value of player0 horizontal position
     DEL = $6001     ; Stores value of move delay
     SCORE = $6002
     LIVES = $6003
+    P2 = $6004
     PINIT = $6500
+    P2INIT = $6550
     P1Y = pm + $500 + p1yi
+    P2Y = pm + $600 + py
 
     lda #3
     sta LIVES
@@ -32,10 +36,14 @@ begin:
 	sty $d01d       ; PMCTL Player/Missile control
 	lda #$e         ; Player0 color (white)
 	sta $2C0	    ; Shadow registry of player0 color
-	lda #123        ; Player1 color (white)
+	lda #123        ; Player1 color (red)
     sta $2C1	    ; Shadow registry of player1 color
+    lda #20         ; Player2 color (white)
+    sta $2C2	    ; Shadow registry of player1 color
 	lda #%00111010  ; Player/Missile configuration bits settings
-	sta 559		    ; DMACTLS - registry of Player/Missile settings
+	sta $22F		; DMACTLS - registry of Player/Missile settings
+	lda #%00000011
+	sta $D01D       ; enable four players + fifth player or missiles
 	lda #120        ; Player0 horizontal positon (44 - 205)
 	sta HPOSP0      ; Set Player0 horizontal positon
 	sta px
@@ -44,9 +52,15 @@ begin:
 
 loop:
     jsr delay
-
     jsr move_player1_down
+    jsr move_player2_up
 
+fire:
+    ldx $0284
+    cpx #1
+    beq joystick
+    jsr initialize_player2
+joystick:
 	ldx $278        ; Joystick position
 	cpx #11
 	beq left 
@@ -58,13 +72,13 @@ left:
 	dec px
 	lda px
 	sta HPOSP0
-		jsr decrease_lives
+;	jsr decrease_lives
 	jmp loop
 right:
 	inc px
 	lda px
 	sta HPOSP0
-	jsr increase_score
+;	jsr increase_score
 	jmp loop
 
 get_random:
@@ -116,60 +130,87 @@ initialize_player1:
 	bne LOOP2
     rts
 
+initialize_player2:
+    lda px
+    sta $D002 ; Horizontal positoin of Player2
+    lda #py
+    sta P2
+    ldx #0 ; Player1 height
+    LOOP4:
+    lda P2INIT,x
+    sta P2Y,x
+    inx
+	cpx #6
+	bne LOOP4
+    rts
+
+move_player2_up:
+    ldx P2   ; Player1 height
+    LOOP3:
+    lda pm + $600 ,x
+    sta pm + $600 ,x - 1
+    inx
+    cpx P2 + 6
+	bne LOOP3
+	dec P2
+
+;    lda #20
+;	cmp p1yi
+;	beq initialize_player1
+    rts
+
 increase_score:
     sed
-    lda SCORE
+    lda score
     adc #$11
-    sta SCORE
+    sta score
     cld
-    LDX #0
-    LDY #0
-    ONE:
-    LDA SCORE,X
-    LSR ;EACH BYTE HOLDS 2 NUMBERS
-    LSR ;SHIFT UPPER NIBBLE OVER
-    LSR ;AND DO IT
-    LSR ;FIRST.
-    ORA #16 ; TRANSLATE NUMBER INTO INTERNAL CHARACTER
-    STA  text_score + 1,Y ;STORE HIGHER DIGIT OF PAIR ON SCREEN
-    INY ; NEXT
-    LDA SCORE ,X
-    AND #$0F ; NOW DO LOWER NIBBLE
-    ORA #16 ; MAKE A CHR
-    STA  text_score + 1,Y ;STORE LOWER DIGIT OF PAIR ON SCREEN
-    CPX #0 ; DONE BOTH BYTES? (ALL 4 SCORE DIGITS)
-    BNE ONE
-    RTS
+    ldx #0
+    ldy #0
+    one:
+    lda score,x
+    lsr ;each byte holds 2 numbers
+    lsr ;shift upper nibble over
+    lsr ;and do it
+    lsr ;first.
+    ora #16 ; translate number into internal character
+    sta  text_score + 1,y ;store higher digit of pair on screen
+    iny ; next
+    lda score ,x
+    and #$0f ; now do lower nibble
+    ora #16 ; make a chr
+    sta  text_score + 1,y ;store lower digit of pair on screen
+    cpx #0 ; done both bytes? (all 4 score digits)
+    bne one
+    rts
 
 decrease_lives:
     sed
-    lda LIVES
+    lda lives
     sbc #$11
-    sta LIVES
+    sta lives
     cld
-    LDX #0
-    LDY #0
-    TWO:
-    LDA LIVES,X
-    LSR ;EACH BYTE HOLDS 2 NUMBERS
-    LSR ;SHIFT UPPER NIBBLE OVER
-    LSR ;AND DO IT
-    LSR ;FIRST.
-    ORA #16 ; TRANSLATE NUMBER INTO INTERNAL CHARACTER
-    STA  text_lives,Y ;STORE HIGHER DIGIT OF PAIR ON SCREEN
-    INY ; NEXT
-    LDA LIVES ,X
-    AND #$0F ; NOW DO LOWER NIBBLE
-    ORA #16 ; MAKE A CHR
-    STA  text_lives,Y ;STORE LOWER DIGIT OF PAIR ON SCREEN
-    CPX #0 ; DONE BOTH BYTES? (ALL 4 SCORE DIGITS)
-    BNE TWO
-
-    ldx LIVES
+    ldx #0
+    ldy #0
+    two:
+    lda lives,x
+    lsr ;each byte holds 2 numbers
+    lsr ;shift upper nibble over
+    lsr ;and do it
+    lsr ;first.
+    ora #16 ; translate number into internal character
+    sta  text_lives,y ;store higher digit of pair on screen
+    iny ; next
+    lda lives ,x
+    and #$0f ; now do lower nibble
+    ora #16 ; make a chr
+    sta  text_lives,y ;store lower digit of pair on screen
+    cpx #0 ; done both bytes? (all 4 score digits)
+    bne two
+    ldx lives
     cpx #0
     beq game_over
-
-    RTS
+    rts
 
 game_over:
     lda #<dl_over        ; Set up display list
@@ -177,7 +218,6 @@ game_over:
     lda #>dl_over
     sta $231
     jmp *
-
 
 	org pm + $400 + py
     dta b(%00010000)
@@ -212,6 +252,14 @@ game_over:
 	dta b(%10000001)
 	dta b(%10000001)
 	dta b(%10000001)
+	dta b(%00000000)
+
+	org P2INIT
+	dta b(%00000000)
+    dta b(%00010000)
+    dta b(%00010000)
+    dta b(%00010000)
+    dta b(%00010000)
 	dta b(%00000000)
 
 text1       dta d"Lives: "
