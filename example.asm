@@ -9,12 +9,22 @@ begin:
     HSPOS1 = $d001  ; HPOSP0 - horizontal position of player0 (shadow registry)
     px = $6000      ; Stores value of player0 horizontal position
     DEL = $6001     ; Stores value of move delay
+    SCORE = $6002
+    LIVES = $6003
     PINIT = $6500
     P1Y = pm + $500 + p1yi
 
+    lda #3
+    sta LIVES
+
+    lda #<dl        ; Set up display list
+    sta $230
+    lda #>dl
+    sta $231
+
     lda #0          ; Get black color
     sta $2C8        ; Set border color
-    sta $2C5        ; Set text color
+;    sta $2C5        ; Set text color
     sta $2C6        ; Set background color
 	lda >pm         ; get high byte of pm
 	sta $d407	    ; PMBASE - msb of Player/Missile address
@@ -48,11 +58,13 @@ left:
 	dec px
 	lda px
 	sta HPOSP0
+		jsr decrease_lives
 	jmp loop
 right:
 	inc px
 	lda px
 	sta HPOSP0
+	jsr increase_score
 	jmp loop
 
 get_random:
@@ -104,6 +116,69 @@ initialize_player1:
 	bne LOOP2
     rts
 
+increase_score:
+    sed
+    lda SCORE
+    adc #$11
+    sta SCORE
+    cld
+    LDX #0
+    LDY #0
+    ONE:
+    LDA SCORE,X
+    LSR ;EACH BYTE HOLDS 2 NUMBERS
+    LSR ;SHIFT UPPER NIBBLE OVER
+    LSR ;AND DO IT
+    LSR ;FIRST.
+    ORA #16 ; TRANSLATE NUMBER INTO INTERNAL CHARACTER
+    STA  text_score + 1,Y ;STORE HIGHER DIGIT OF PAIR ON SCREEN
+    INY ; NEXT
+    LDA SCORE ,X
+    AND #$0F ; NOW DO LOWER NIBBLE
+    ORA #16 ; MAKE A CHR
+    STA  text_score + 1,Y ;STORE LOWER DIGIT OF PAIR ON SCREEN
+    CPX #0 ; DONE BOTH BYTES? (ALL 4 SCORE DIGITS)
+    BNE ONE
+    RTS
+
+decrease_lives:
+    sed
+    lda LIVES
+    sbc #$11
+    sta LIVES
+    cld
+    LDX #0
+    LDY #0
+    TWO:
+    LDA LIVES,X
+    LSR ;EACH BYTE HOLDS 2 NUMBERS
+    LSR ;SHIFT UPPER NIBBLE OVER
+    LSR ;AND DO IT
+    LSR ;FIRST.
+    ORA #16 ; TRANSLATE NUMBER INTO INTERNAL CHARACTER
+    STA  text_lives,Y ;STORE HIGHER DIGIT OF PAIR ON SCREEN
+    INY ; NEXT
+    LDA LIVES ,X
+    AND #$0F ; NOW DO LOWER NIBBLE
+    ORA #16 ; MAKE A CHR
+    STA  text_lives,Y ;STORE LOWER DIGIT OF PAIR ON SCREEN
+    CPX #0 ; DONE BOTH BYTES? (ALL 4 SCORE DIGITS)
+    BNE TWO
+
+    ldx LIVES
+    cpx #0
+    beq game_over
+
+    RTS
+
+game_over:
+    lda #<dl_over        ; Set up display list
+    sta $230
+    lda #>dl_over
+    sta $231
+    jmp *
+
+
 	org pm + $400 + py
     dta b(%00010000)
 	dta b(%00010000)
@@ -138,5 +213,13 @@ initialize_player1:
 	dta b(%10000001)
 	dta b(%10000001)
 	dta b(%00000000)
+
+text1       dta d"Lives: "
+text_lives  dta d"03"
+text2       dta d" Score: "
+text_score  dta d"0000"
+text_over   dta d"     Game Over      "
+dl          dta $70,$46,a(text1),$41,a(dl) ; Display list
+dl_over     dta $70,$46,a(text_over),$41,a(dl)
 
 	run begin
