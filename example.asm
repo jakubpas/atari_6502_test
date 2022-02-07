@@ -10,10 +10,10 @@ begin:
     HSPOS1 = $d001  ; HPOSP0 - horizontal position of player1 (shadow registry)
     px = $6000      ; Stores value of player0 horizontal position
     DEL = $6001     ; Stores value of move delay
-    SCORE = $6002
-    LIVES = $6003
-    P2 = $6004
-    PINIT = $6500
+    SCORE = $6002   ; Score
+    LIVES = $6003   ; Lives
+    P2 = $6004      ; Current Player2 vertical position
+    PINIT = $6500   ;
     P2INIT = $6550
     P1Y = pm + $500 + p1yi
     P2Y = pm + $600 + py
@@ -82,11 +82,11 @@ right:
 	jmp loop
 
 get_random:
-    lda $D20A ; 44 - 205
-    CMP #204
-    BCS more_or_same
-    CMP #44
-    BCC less_or_same
+    lda $d20a ; 44 - 205
+    cmp #204
+    bcs more_or_same
+    cmp #44
+    bcc less_or_same
     rts
     more_or_same:
     lda #204
@@ -131,6 +131,11 @@ initialize_player1:
     rts
 
 initialize_player2:
+    lda P2
+    CMP #0  ; if Player is already on the screen return
+    beq cont
+    rts
+    cont:
     lda px
     sta $D002 ; Horizontal positoin of Player2
     lda #py
@@ -145,7 +150,10 @@ initialize_player2:
     rts
 
 move_player2_up:
-    ldx P2   ; Player1 height
+    lda P2
+    cmp #0
+    bne LOOP3
+    rts
     LOOP3:
     lda pm + $600 ,x
     sta pm + $600 ,x - 1
@@ -153,10 +161,6 @@ move_player2_up:
     cpx P2 + 6
 	bne LOOP3
 	dec P2
-
-;    lda #20
-;	cmp p1yi
-;	beq initialize_player1
     rts
 
 increase_score:
