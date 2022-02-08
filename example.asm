@@ -1,23 +1,24 @@
     org $8000 ;Start of code
 
 begin:
-    RAMTOP = 106    ; Returns last page number of available ram;
+    ramtop = 106    ; Returns last page number of available ram;
     pm = $a000      ; Player/Missile start address
     py = 200        ; Player0 vertical position
     p1yi = 10       ; Player1 vertical initial position
     p2y1 = 190      ; Player2 vertical initial position
-    HPOSP0 = $d000  ; HPOSP0 - horizontal position of player0 (shadow registry)
-    HSPOS1 = $d001  ; HPOSP0 - horizontal position of player1 (shadow registry)
+    hposp0 = $d000  ; HPOSP0 - horizontal position of player0 (hardware shadow registry, save only)
+    hspos1 = $d001  ; HPOSP0 - horizontal position of player1 (hardware shadow registry, save only)
     px = $6000      ; Stores value of player0 horizontal position
-    DEL = $6001     ; Stores value of move delay
-    score = $6002   ; Score
-    LIVES = $6003   ; Lives
-    start_lives = 5 ;
-    P2 = $6004      ; Current Player2 vertical position
-    PINIT = $6500   ;
-    P2INIT = $6550
-    P1Y = pm + $500 + p1yi
-    P2Y = pm + $600 + p2y1
+    del = $6001     ; Stores value of move delay
+    score = $6002   ; Score address
+    lives = $6003   ; Lives address
+    start_lives = 5 ; Number of lives on start
+    p2 = $6004      ; Current Player2 vertical position
+    pinit = $6500   ; Player1 memory start address
+    p2init = $6550  ; Player2 memory start address
+
+    p1y = pm + $500 + p1yi
+    p2y = pm + $600 + p2y1
 
     lda #0          ; Get black color
     sta $2C8        ; Set border color
@@ -35,11 +36,11 @@ begin:
     sta $2C2	    ; Shadow registry of player1 color
 	lda #%00111010  ; Player/Missile configuration bits settings
 	sta $22F		; DMACTLS - registry of Player/Missile settings
-	lda #%00000011
-	sta $D01D       ; enable four players + fifth player or missiles
+	lda #%00000011  ; Enable four players + fifth player or missiles
+	sta $D01D       ; Save players configuration
 	lda #120        ; Player0 horizontal positon (44 - 205)
-	sta HPOSP0      ; Set Player0 horizontal positon
-	sta px
+	sta HPOSP0      ; Set Player0 horizontal positon to hadrware registry
+	sta px          ; Set Player0 horizontal positon
 
     lda #<dl        ; Set up display list
     sta $230
@@ -196,23 +197,23 @@ move_player2_up:
     rts
 
 increase_score:
-    inc score
-    lda score
-    ldy #$0f
-    ldx #$1a
-    sec
+    inc score          ; Actual increase
+    lda score          ; Load score to Acumulator
+    ldy #$0f           ; Load ATASCII "0" to Y registry
+    ldx #$1a           ; Load ATASCII "1" to Y registry
+    sec                ; Set Carry register
     a:
-    iny
-    sbc #100
-    bcs a
+    iny                ; Increase Y register
+    sbc #100           ; Subtract 100 with Carry (Binary mode)
+    bcs a              ; Loop a on Carry Set
     b:
-    dex
-    adc #10
-    bmi b
-    adc #$0f
-    sty text_score
-    stx text_score + 1
-    sta text_score + 2
+    dex                ; Decrease x
+    adc #10            ; Add 10 to x
+    bmi b              ; Branch if negative
+    adc #$0f           ; Convert dec to ATASCII
+    sty text_score     ; Store digit 1
+    stx text_score + 1 ; Store digit 2
+    sta text_score + 2 ; Store digit 3
     jsr delete_player1
     rts
 
@@ -233,7 +234,7 @@ decrease_lives:
     rts
 
 detect_collisions:
-    lda $D00C  ; Check collistio of plyer zero
+    lda $D00C  ; Check collisons of Player0
     cmp #0
     beq det1
     jsr decrease_lives
