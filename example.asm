@@ -4,27 +4,20 @@ begin:
     RAMTOP = 106    ; Returns last page number of available ram;
     pm = $a000      ; Player/Missile start address
     py = 200        ; Player0 vertical position
-    p1yi = 10       ; Player1 vertical position
-    p2yi = 25       ; Player2 vertical position
+    p1yi = 10       ; Player1 vertical initial position
+    p2y1 = 190      ; Player2 vertical initial position
     HPOSP0 = $d000  ; HPOSP0 - horizontal position of player0 (shadow registry)
     HSPOS1 = $d001  ; HPOSP0 - horizontal position of player1 (shadow registry)
     px = $6000      ; Stores value of player0 horizontal position
     DEL = $6001     ; Stores value of move delay
-    SCORE = $6002   ; Score
+    score = $6002   ; Score
     LIVES = $6003   ; Lives
+    start_lives = 5 ;
     P2 = $6004      ; Current Player2 vertical position
     PINIT = $6500   ;
     P2INIT = $6550
     P1Y = pm + $500 + p1yi
-    P2Y = pm + $600 + py
-
-    lda #3
-    sta LIVES
-
-    lda #<dl        ; Set up display list
-    sta $230
-    lda #>dl
-    sta $231
+    P2Y = pm + $600 + p2y1
 
     lda #0          ; Get black color
     sta $2C8        ; Set border color
@@ -48,19 +41,50 @@ begin:
 	sta HPOSP0      ; Set Player0 horizontal positon
 	sta px
 
+    lda #<dl        ; Set up display list
+    sta $230
+    lda #>dl
+    sta $231
+
+start_loop:
+    ldx $0284 ; Check fire pressed
+    cpx #1
+    beq start_loop
+    jsr start_game
+    jmp start_loop
+
+start_game:
+    lda #start_lives
+    sta LIVES
+    lda #$15
+    sta text_lives + 1
+
+    lda #0
+    sta score
+    lda #$10
+    sta text_score
+    sta text_score + 1
+    sta text_score + 2
+
+    lda #<dl        ; Set up display list
+    sta $230
+    lda #>dl
+    sta $231
     jsr initialize_player1
+
 
 loop:
     jsr delay
     jsr move_player1_down
     jsr move_player2_up
+    jsr detect_collisions
 
-fire:
-    ldx $0284
+    fire:
+    ldx $0284 ; Check fire pressed
     cpx #1
     beq joystick
     jsr initialize_player2
-joystick:
+    joystick:
 	ldx $278        ; Joystick position
 	cpx #11
 	beq left 
@@ -68,17 +92,15 @@ joystick:
 	beq right
 	cpx #0
 	bne loop
-left:
+    left:
 	dec px
 	lda px
 	sta HPOSP0
-;	jsr decrease_lives
 	jmp loop
-right:
+    right:
 	inc px
 	lda px
 	sta HPOSP0
-;	jsr increase_score
 	jmp loop
 
 get_random:
@@ -116,6 +138,16 @@ move_player1_down:
 	beq initialize_player1
     rts
 
+delete_player1:
+    ldx p1yi + 15   ; Player1 height
+    delete_player1_loop1:
+    lda #0
+    sta $a500,x + 1
+    dex
+	bne delete_player1_loop1
+	inc p1yi
+    rts
+
 initialize_player1:
     jsr get_random   ; get random position to acumulator
     sta HSPOS1       ; Set Player1 horizontal position
@@ -132,13 +164,13 @@ initialize_player1:
 
 initialize_player2:
     lda P2
-    CMP #0  ; if Player is already on the screen return
+    cmp #0  ; if Player is already on the screen return
     beq cont
     rts
     cont:
     lda px
     sta $D002 ; Horizontal positoin of Player2
-    lda #py
+    lda #p2y1
     sta P2
     ldx #0 ; Player1 height
     LOOP4:
@@ -164,64 +196,68 @@ move_player2_up:
     rts
 
 increase_score:
-    sed
+    inc score
     lda score
-    adc #$11
-    sta score
-    cld
-    ldx #0
-    ldy #0
-    one:
-    lda score,x
-    lsr ;each byte holds 2 numbers
-    lsr ;shift upper nibble over
-    lsr ;and do it
-    lsr ;first.
-    ora #16 ; translate number into internal character
-    sta  text_score + 1,y ;store higher digit of pair on screen
-    iny ; next
-    lda score ,x
-    and #$0f ; now do lower nibble
-    ora #16 ; make a chr
-    sta  text_score + 1,y ;store lower digit of pair on screen
-    cpx #0 ; done both bytes? (all 4 score digits)
-    bne one
+    ldy #$0f
+    ldx #$1a
+    sec
+    a:
+    iny
+    sbc #100
+    bcs a
+    b:
+    dex
+    adc #10
+    bmi b
+    adc #$0f
+    sty text_score
+    stx text_score + 1
+    sta text_score + 2
+    jsr delete_player1
     rts
 
 decrease_lives:
+    dec lives
     sed
     lda lives
-    sbc #$11
-    sta lives
     cld
-    ldx #0
-    ldy #0
-    two:
-    lda lives,x
-    lsr ;each byte holds 2 numbers
-    lsr ;shift upper nibble over
-    lsr ;and do it
-    lsr ;first.
-    ora #16 ; translate number into internal character
-    sta  text_lives,y ;store higher digit of pair on screen
-    iny ; next
-    lda lives ,x
     and #$0f ; now do lower nibble
     ora #16 ; make a chr
-    sta  text_lives,y ;store lower digit of pair on screen
-    cpx #0 ; done both bytes? (all 4 score digits)
-    bne two
+    ldx #1
+    sta  text_lives, x
+    jsr delete_player1
+    jsr initialize_player1
     ldx lives
     cpx #0
     beq game_over
     rts
 
+detect_collisions:
+    lda $D00C  ; Check collistio of plyer zero
+    cmp #0
+    beq det1
+    jsr decrease_lives
+    lda #1
+    sta $D01E  ; reset collisions
+    det1:
+    lda $D00E  ; Check collistio of plyer two
+    cmp #0
+    beq det2
+    jsr increase_score
+    lda #1
+    sta $D01E  ; reset collisions
+    det2:
+    rts
+
 game_over:
-    lda #<dl_over        ; Set up display list
+    lda #1
+    sta $D01E  ; reset collisions
+    jsr delete_player1
+    lda #<dl_over        ; Set up display list`
     sta $230
     lda #>dl_over
     sta $231
-    jmp *
+    jmp start_loop
 
 	org pm + $400 + py
     dta b(%00010000)
@@ -267,9 +303,9 @@ game_over:
 	dta b(%00000000)
 
 text1       dta d"Lives: "
-text_lives  dta d"03"
+text_lives  dta d"05"
 text2       dta d" Score: "
-text_score  dta d"0000"
+text_score  dta d"000 "
 text_over   dta d"     Game Over      "
 dl          dta $70,$46,a(text1),$41,a(dl) ; Display list
 dl_over     dta $70,$46,a(text_over),$41,a(dl)
