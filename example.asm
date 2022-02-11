@@ -1,4 +1,4 @@
-    org $8000       ;Start of code
+    org $8000       ; Start of code on page 8
 
 begin:
     ramtop = 106    ; Returns last page number of available ram;
@@ -149,7 +149,7 @@ delete_player1:
     rts
 
 initialize_player1:
-    jsr get_random  ; get random position to acumulator
+    jsr get_random  ; Get random position to acumulator
     sta hspos1      ; Set Player1 horizontal position
     lda #10
     sta p1yi
@@ -164,7 +164,7 @@ initialize_player1:
 
 initialize_player2:
     lda P2
-    cmp #0          ; if Player is already on the screen return
+    cmp #0          ; If Player is already on the screen return
     beq cont
     rts
     cont:
@@ -221,8 +221,8 @@ decrease_lives:
     sed
     lda lives
     cld
-    and #$0f        ; now do lower nibble
-    ora #16         ; make a chr
+    and #$0f        ; Now do lower nibble
+    ora #16         ; Make a chr
     ldx #1
     sta text_lives, x
     jsr delete_player1
@@ -238,20 +238,20 @@ detect_collisions:
     beq det1
     jsr decrease_lives
     lda #1
-    sta $d01e       ; reset collisions
+    sta $d01e       ; Reset collisions
     det1:
     lda $d00e       ; Check collistio of plyer two
     cmp #0
     beq det2
     jsr increase_score
     lda #1
-    sta $d01e       ; reset collisions
+    sta $d01e       ; Reset collisions
     det2:
     rts
 
 game_over:
     lda #1
-    sta $d01e       ; reset collisions
+    sta $d01e       ; Reset collisions
     jsr delete_player1
     lda #<dl_over   ; Set up display list`
     sta $230
