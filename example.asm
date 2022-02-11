@@ -25,17 +25,17 @@ begin:
 ;    sta $2c5        ; Set text color
 	sta $2c6        ; Set background color
 	lda >pm         ; get high byte of pm
-	sta $d407	    ; PMBASE - msb of Player/Missile address
+	sta $d407	; PMBASE - msb of Player/Missile address
 	ldy #2          ; Show both player and missiles
 	sty $d01d       ; PMCTL Player/Missile control
 	lda #$e         ; Player0 color (white)
-	sta $2c0	    ; Shadow registry of player0 color
+	sta $2c0	; Shadow registry of player0 color
 	lda #123        ; Player1 color (red)
-	sta $2c1	    ; Shadow registry of player1 color
+	sta $2c1	; Shadow registry of player1 color
 	lda #20         ; Player2 color (white)
-	sta $2c2	    ; Shadow registry of player1 color
+	sta $2c2	; Shadow registry of player1 color
 	lda #%00111010  ; Player/Missile configuration bits settings
-	sta $22f		; DMACTLS - registry of Player/Missile settings
+	sta $22f	; DMACTLS - registry of Player/Missile settings
 	lda #%00000011  ; Enable four players + fifth player or missiles
 	sta $d01d       ; Save players configuration
 	lda #120        ; Player0 horizontal positon (44 - 205)
