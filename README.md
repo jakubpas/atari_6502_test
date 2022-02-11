@@ -9,10 +9,13 @@ to registers and accumulator.
 
 ## Requirements:
 
- - Idea with 6502 plugin
  - MADS Assembler
  - Atari800 emulator
  - Tested on Atari 130 XE hardware
+- [Idea with 6502 plugin](https://github.com/mike42/6502-assembly-intellij)
+- My [Number convertert plugin](https://github.com/jakubpas/number_converter)
+
+(I'm aware of [WUDSN IDE](https://github.com/peterdell/wudsn-ide) which is great, but I still like Idea better)
 
 ## Idea External tools configuration:
 
