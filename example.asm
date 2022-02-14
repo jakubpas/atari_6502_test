@@ -1,7 +1,8 @@
 	org $8000       ; Start of code on page 8
 
 begin:
-	ramtop = 106    ; Returns last page number of available ram;
+	RAMTOP = 106    ; Returns last page number of available ram;
+	RTCLOK = $12    ;
 	pm = $a000      ; Player/Missile start address
 	py = 200        ; Player0 vertical position
 	p1yi = 10       ; Player1 vertical initial position
@@ -16,9 +17,14 @@ begin:
 	p2 = $6004      ; Current Player2 vertical position
 	pinit = $6500   ; Player1 memory start address
 	p2init = $6550  ; Player2 memory start address
+    vscroll = $6005 ; Scroll status
+    screen_size = 24
 
 	p1y = pm + $500 + p1yi
 	p2y = pm + $600 + p2y1
+
+	lda #screen_size
+	sta vscroll      ; number of lines in one screen background
 
 	lda #0          ; Get black color
 	sta $2c8        ; Set border color
@@ -42,9 +48,9 @@ begin:
 	sta hposp0      ; Set Player0 horizontal positon to hadrware registry
 	sta px          ; Set Player0 horizontal positon
 
-	lda #<dl        ; Set up display list
+	lda #<dl        ; Set up display list, get LSB of dl
 	sta $230
-	lda #>dl
+	lda #>dl        ; Ger MSB of dl
 	sta $231
 
 start_loop:
@@ -78,6 +84,8 @@ loop:
 	jsr move_player1_down
 	jsr move_player2_up
 	jsr detect_collisions
+	jsr scroll_down_background
+
 
 	fire:
 	ldx $0284 ; Check fire pressed
@@ -259,6 +267,42 @@ game_over:
 	sta $231
 	jmp start_loop
 
+scroll_down_background:
+        jsr timing_loop
+        dec vscroll
+        lda vscroll
+        cmp #0
+        bne cont_scroll
+        jsr reset_background
+        cont_scroll:
+        lda dl + 2
+        sbc #40       ;  1,4,7,10
+        sta dl + 2
+        lda dl + 3
+        sbc #0
+        sta dl + 3
+        rts
+
+reset_background:
+        lda #screen_size
+        sta vscroll
+        lda #<background2
+        sta dl + 2
+        lda #>background2
+        sta dl + 3
+        rts
+
+timing_loop
+        ldx #18        ; number of VBLANKs to wait
+astart  lda RTCLOK+2    ; check fastest moving RTCLOCK byte
+await   cmp RTCLOK+2    ; VBLANK will update this
+        beq await       ; delay until VBLANK changes it
+        dex             ; delay for a number of VBLANKs
+        bpl astart      ; Branch on plus
+        rts
+
+
+
 	org pm + $400 + py
 	dta b(%00010000)
 	dta b(%00010000)
@@ -302,12 +346,65 @@ game_over:
 	dta b(%00010000)
 	dta b(%00000000)
 
+background1:
+      dta d"    ..           .               ..     "
+      dta d"                                        "
+      dta d"                     .                  "
+      dta d"                                        "
+      dta d"    .                            .      "
+      dta d"        .                   .           "
+      dta d"                                        "
+      dta d"                                        "
+      dta d"                          .             "
+      dta d"   .            .                       "
+      dta d"                                        "
+      dta d"                                    .   "
+      dta d"    .                                   "
+      dta d"                    .                   "
+      dta d"        .                               "
+      dta d"                                        "
+      dta d"                                .       "
+      dta d"    .                                   "
+      dta d"                                        "
+      dta d"        .                               "
+      dta d"                .                       "
+      dta d"                                        "
+      dta d"                        .               "
+      dta d"                                        "
+      dta d"             .                          "
+background2:
+      dta d"    ..           .               ..     "
+      dta d"                                        "
+      dta d"                     .                  "
+      dta d"                                        "
+      dta d"    .                            .      "
+      dta d"        .                   .           "
+      dta d"                                        "
+      dta d"                                        "
+      dta d"                          .             "
+      dta d"   .            .                       "
+      dta d"                                        "
+      dta d"                                    .   "
+      dta d"    .                                   "
+      dta d"                    .                   "
+      dta d"        .                               "
+      dta d"                                        "
+      dta d"                                .       "
+      dta d"    .                                   "
+      dta d"                                        "
+      dta d"        .                               "
+      dta d"                .                       "
+      dta d"                                        "
+      dta d"                        .               "
+      dta d"                                        "
+      dta d"             .                          "
+
 text1       dta d"Lives: "
 text_lives  dta d"05"
 text2       dta d" Score: "
 text_score  dta d"000 "
 text_over   dta d"     Game Over      "
-dl          dta $70,$46,a(text1),$41,a(dl) ; Display list
+dl          dta $70,$42,a(background2),02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,$41,a(dl) ; Display list
 dl_over     dta $70,$46,a(text_over),$41,a(dl)
 
 	run begin
