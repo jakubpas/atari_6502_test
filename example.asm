@@ -19,12 +19,19 @@ begin:
 	p2init = $6550  ; Player2 memory start address
     vscroll = $6005 ; Scroll status
     screen_size = 24
+    fine = $6006
+    fin1 = 7
 
 	p1y = pm + $500 + p1yi
 	p2y = pm + $600 + p2y1
 
 	lda #screen_size
 	sta vscroll      ; number of lines in one screen background
+
+    lda #fin1
+    sta fine
+    sta $D405
+
 
 	lda #0          ; Get black color
 	sta $2c8        ; Set border color
@@ -80,7 +87,7 @@ start_game:
 	jsr initialize_player1
 
 loop:
-	jsr delay
+	jsr timing_loop
 	jsr move_player1_down
 	jsr move_player2_up
 	jsr detect_collisions
@@ -95,7 +102,7 @@ loop:
 	joystick:
 	ldx $278        ; Joystick position
 	cpx #11
-	beq left 
+	beq left
 	cpx #7
 	beq right
 	cpx #0
@@ -268,7 +275,19 @@ game_over:
 	jmp start_loop
 
 scroll_down_background:
-        jsr timing_loop
+;        jsr timing_loop
+        dec fine
+        lda fine
+        cmp #0
+        beq cont2
+        sta $D405
+        rts
+
+        cont2:
+        lda #fin1
+        sta fine
+        sta $D405
+
         dec vscroll
         lda vscroll
         cmp #0
@@ -293,7 +312,7 @@ reset_background:
         rts
 
 timing_loop
-        ldx #18        ; number of VBLANKs to wait
+        ldx #0      ; number of VBLANKs to wait
 astart  lda RTCLOK+2    ; check fastest moving RTCLOCK byte
 await   cmp RTCLOK+2    ; VBLANK will update this
         beq await       ; delay until VBLANK changes it
@@ -404,7 +423,6 @@ text_lives  dta d"05"
 text2       dta d" Score: "
 text_score  dta d"000 "
 text_over   dta d"     Game Over      "
-dl          dta $70,$42,a(background2),02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,$41,a(dl) ; Display list
+;dl          dta $70,$42,a(background2),02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,$41,a(dl) ; Display list
+dl          dta $70,$62,a(background2),$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$41,a(dl) ; Display list
 dl_over     dta $70,$46,a(text_over),$41,a(dl)
-
-	run begin
