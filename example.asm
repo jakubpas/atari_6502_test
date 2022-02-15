@@ -18,7 +18,7 @@ begin:
 	pinit = $6500   ; Player1 memory start address
 	p2init = $6550  ; Player2 memory start address
     vscroll = $6005 ; Scroll status
-    screen_size = 24
+    screen_size = 24 + 1
     fine = $6006
     fin1 = 7
 
@@ -275,7 +275,6 @@ game_over:
 	jmp start_loop
 
 scroll_down_background:
-;        jsr timing_loop
         dec fine
         lda fine
         cmp #0
@@ -424,5 +423,5 @@ text2       dta d" Score: "
 text_score  dta d"000 "
 text_over   dta d"     Game Over      "
 ;dl          dta $70,$42,a(background2),02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,$41,a(dl) ; Display list
-dl          dta $70,$62,a(background2),$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$41,a(dl) ; Display list
+dl          dta $70,$62,a(background2),$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$02,$41,a(dl) ; Display list
 dl_over     dta $70,$46,a(text_over),$41,a(dl)
