@@ -295,9 +295,9 @@ reset_background:
 
 timing_loop
     ldx #0      ; number of VBLANKs to wait
-    astart
+    astart:
     lda RTCLOK+2    ; check fastest moving RTCLOCK byte
-    await
+    await:
     cmp RTCLOK+2    ; VBLANK will update this
     beq await       ; delay until VBLANK changes it
     dex             ; delay for a number of VBLANKs
@@ -371,8 +371,8 @@ background1:
     dta d"                                        "
     dta d"..           .                         ."
 background2:
-    dta d"1   ..           .               ..     "
-    dta d"2                                       "
+    dta d"    ..           .               ..     "
+    dta d"                                        "
     dta d"                     .                  "
     dta d"                                        "
     dta d"    .                            .      "
