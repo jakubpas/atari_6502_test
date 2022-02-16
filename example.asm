@@ -3,39 +3,35 @@
 begin:
 	RAMTOP = 106    ; Returns last page number of available ram;
 	RTCLOK = $12    ;
+	VSCROL = $D405
+	px = $6000      ; Stores value of player0 horizontal position
+	score = $6001   ; Score address
+    vscroll = $6002 ; Scroll status
 	pm = $a000      ; Player/Missile start address
 	py = 200        ; Player0 vertical position
 	p1yi = 10       ; Player1 vertical initial position
 	p2y1 = 190      ; Player2 vertical initial position
 	hposp0 = $d000  ; HPOSP0 - horizontal position of player0 (hardware shadow registry, save only)
 	hspos1 = $d001  ; HPOSP0 - horizontal position of player1 (hardware shadow registry, save only)
-	px = $6000      ; Stores value of player0 horizontal position
-	del = $6001     ; Stores value of move delay
-	score = $6002   ; Score address
-	lives = $6003   ; Lives address
+	hspos2 = $d002  ; HPOSP0 - horizontal position of player1 (hardware shadow registry, save only)
+	del = 0         ; Stores value of move delay
+	lives = 5       ; Lives address
+	p2 = 0          ; Current Player2 vertical position
+    fine = 8
 	start_lives = 5 ; Number of lives on start
-	p2 = $6004      ; Current Player2 vertical position
-	pinit = $6500   ; Player1 memory start address
-	p2init = $6550  ; Player2 memory start address
-    vscroll = $6005 ; Scroll status
     screen_size = 24 + 1
-    fine = $6006
     fin1 = 7
-
 	p1y = pm + $500 + p1yi
 	p2y = pm + $600 + p2y1
 
+initialize:
 	lda #screen_size
-	sta vscroll      ; number of lines in one screen background
-
-    lda #fin1
-    sta fine
-    sta $D405
-
-
+	sta vscroll     ; number of lines in one screen background
+    lda #fin1       ; Set initial value
+    sta fine        ; of fine scrolling
+    sta VSCROL       ; Set fine stroll register
 	lda #0          ; Get black color
 	sta $2c8        ; Set border color
-;    sta $2c5        ; Set text color
 	sta $2c6        ; Set background color
 	lda >pm         ; get high byte of pm
 	sta $d407	    ; PMBASE - msb of Player/Missile address
@@ -54,7 +50,6 @@ begin:
 	lda #120        ; Player0 horizontal positon (44 - 205)
 	sta hposp0      ; Set Player0 horizontal positon to hadrware registry
 	sta px          ; Set Player0 horizontal positon
-
 	lda #<dl        ; Set up display list, get LSB of dl
 	sta $230
 	lda #>dl        ; Ger MSB of dl
@@ -68,34 +63,22 @@ start_loop:
 	jmp start_loop
 
 start_game:
-	lda #start_lives
-	sta lives
 	lda #$15
 	sta text_lives + 1
-
-	lda #0
-	sta score
 	lda #$10
 	sta text_score
 	sta text_score + 1
 	sta text_score + 2
-
-	lda #<dl        ; Set up display list
-	sta $230
-	lda #>dl
-	sta $231
+	jsr initialize_player0
 	jsr initialize_player1
-
 loop:
 	jsr timing_loop
 	jsr move_player1_down
 	jsr move_player2_up
 	jsr detect_collisions
 	jsr scroll_down_background
-
-
 	fire:
-	ldx $0284 ; Check fire pressed
+	ldx $0284       ; Check fire pressed
 	cpx #1
 	beq joystick
 	jsr initialize_player2
@@ -132,13 +115,6 @@ get_random:
 	lda #44
 	rts
 
-delay:
-	dec del
-	ldx del
-	cpx #0
-	bne delay
-	rts
-
 move_player1_down:
 	ldx p1yi + 15   ; Player1 height
 	loop1:
@@ -147,7 +123,6 @@ move_player1_down:
 	dex
 	bne loop1
 	inc p1yi
-
 	lda #255
 	cmp p1yi
 	beq initialize_player1
@@ -163,6 +138,16 @@ delete_player1:
 	inc p1yi
 	rts
 
+initialize_player0:
+	ldx #0          ; Player1 height
+	loop5:
+	lda player,x
+	sta pm + $400 + py,x
+	inx
+	cpx #15
+	bne loop5
+	rts
+
 initialize_player1:
 	jsr get_random  ; Get random position to acumulator
 	sta hspos1      ; Set Player1 horizontal position
@@ -170,7 +155,7 @@ initialize_player1:
 	sta p1yi
 	ldx #0          ; Player1 height
 	loop2:
-	lda pinit,x
+	lda enemy,x
 	sta p1y,x
 	inx
 	cpx #15
@@ -178,18 +163,18 @@ initialize_player1:
 	rts
 
 initialize_player2:
-	lda P2
+	lda p2
 	cmp #0          ; If Player is already on the screen return
 	beq cont
 	rts
 	cont:
 	lda px
-	sta $d002       ; Horizontal positoin of Player2
+	sta hspos2       ; Horizontal positoin of Player2
 	lda #p2y1
-	sta P2
+	sta p2
 	ldx #0          ; Player1 height
 	loop4:
-	lda p2init,x
+	lda missile,x
 	sta p2y,x
 	inx
 	cpx #6
@@ -275,53 +260,51 @@ game_over:
 	jmp start_loop
 
 scroll_down_background:
-        dec fine
-        lda fine
-        cmp #0
-        beq cont2
-        sta $D405
-        rts
-
-        cont2:
-        lda #fin1
-        sta fine
-        sta $D405
-
-        dec vscroll
-        lda vscroll
-        cmp #0
-        bne cont_scroll
-        jsr reset_background
-        cont_scroll:
-        lda dl + 2
-        sbc #40       ;  1,4,7,10
-        sta dl + 2
-        lda dl + 3
-        sbc #0
-        sta dl + 3
-        rts
+    dec fine
+    lda fine
+    cmp #0
+    beq cont2
+    sta VSCROL
+    rts
+    cont2:
+    lda #fin1
+    sta fine
+    sta VSCROL
+    dec vscroll
+    lda vscroll
+    cmp #0
+    bne cont_scroll
+    jsr reset_background
+    cont_scroll:
+    lda dl + 2
+    sbc #40       ;  1,4,7,10
+    sta dl + 2
+    lda dl + 3
+    sbc #0
+    sta dl + 3
+    rts
 
 reset_background:
-        lda #screen_size
-        sta vscroll
-        lda #<background2
-        sta dl + 2
-        lda #>background2
-        sta dl + 3
-        rts
+    lda #screen_size
+    sta vscroll
+    lda #<background2
+    sta dl + 2
+    lda #>background2
+    sta dl + 3
+    rts
 
 timing_loop
-        ldx #0      ; number of VBLANKs to wait
-astart  lda RTCLOK+2    ; check fastest moving RTCLOCK byte
-await   cmp RTCLOK+2    ; VBLANK will update this
-        beq await       ; delay until VBLANK changes it
-        dex             ; delay for a number of VBLANKs
-        bpl astart      ; Branch on plus
-        rts
+    ldx #0      ; number of VBLANKs to wait
+    astart
+    lda RTCLOK+2    ; check fastest moving RTCLOCK byte
+    await
+    cmp RTCLOK+2    ; VBLANK will update this
+    beq await       ; delay until VBLANK changes it
+    dex             ; delay for a number of VBLANKs
+    bpl astart      ; Branch on plus
+    rts
 
-
-
-	org pm + $400 + py
+player:
 	dta b(%00010000)
 	dta b(%00010000)
 	dta b(%00010000)
@@ -337,8 +320,7 @@ await   cmp RTCLOK+2    ; VBLANK will update this
 	dta b(%11111110)
 	dta b(%10111010)
 	dta b(%10111010)
-
-	org pinit
+enemy:
 	dta b(%00000000)
 	dta b(%10000001)
 	dta b(%10000001)
@@ -355,73 +337,71 @@ await   cmp RTCLOK+2    ; VBLANK will update this
 	dta b(%10000001)
 	dta b(%10000001)
 	dta b(%00000000)
-
-	org p2init
+missile:
 	dta b(%00000000)
 	dta b(%00010000)
 	dta b(%00010000)
 	dta b(%00010000)
 	dta b(%00010000)
 	dta b(%00000000)
-
 background1:
-      dta d"    ..           .               ..     "
-      dta d"                                        "
-      dta d"                     .                  "
-      dta d"                                        "
-      dta d"    .                            .      "
-      dta d"        .                   .           "
-      dta d"                                        "
-      dta d"                                        "
-      dta d"                          .             "
-      dta d"   .            .                       "
-      dta d"                                        "
-      dta d"                                    .   "
-      dta d"    .                                   "
-      dta d"                    .                   "
-      dta d"        .                               "
-      dta d"                                        "
-      dta d"                                .       "
-      dta d"    .                                   "
-      dta d"                                        "
-      dta d"        .                               "
-      dta d"                .                       "
-      dta d"                                        "
-      dta d"                        .               "
-      dta d"                                        "
-      dta d"             .                          "
+    dta d".   ..           .               ..     "
+    dta d"                                        "
+    dta d"                     .                  "
+    dta d"                                        "
+    dta d"    .                            .      "
+    dta d"        .                   .           "
+    dta d"                                        "
+    dta d"                                        "
+    dta d"                          .             "
+    dta d"   .            .                       "
+    dta d"                                        "
+    dta d"                                    .   "
+    dta d"    .                                   "
+    dta d"                    .                   "
+    dta d"        .                               "
+    dta d"                                        "
+    dta d"                                .       "
+    dta d"    .                                   "
+    dta d"                                        "
+    dta d".      .                                "
+    dta d"                .                       "
+    dta d"                                        "
+    dta d"                        .               "
+    dta d"                                        "
+    dta d"..           .                         ."
 background2:
-      dta d"    ..           .               ..     "
-      dta d"                                        "
-      dta d"                     .                  "
-      dta d"                                        "
-      dta d"    .                            .      "
-      dta d"        .                   .           "
-      dta d"                                        "
-      dta d"                                        "
-      dta d"                          .             "
-      dta d"   .            .                       "
-      dta d"                                        "
-      dta d"                                    .   "
-      dta d"    .                                   "
-      dta d"                    .                   "
-      dta d"        .                               "
-      dta d"                                        "
-      dta d"                                .       "
-      dta d"    .                                   "
-      dta d"                                        "
-      dta d"        .                               "
-      dta d"                .                       "
-      dta d"                                        "
-      dta d"                        .               "
-      dta d"                                        "
-      dta d"             .                          "
-
+    dta d"1   ..           .               ..     "
+    dta d"2                                       "
+    dta d"                     .                  "
+    dta d"                                        "
+    dta d"    .                            .      "
+    dta d"        .                   .           "
+    dta d"                                        "
+    dta d"                                        "
+    dta d"                          .             "
+    dta d"   .            .                       "
+    dta d"                                        "
+    dta d"                                    .   "
+    dta d"    .                                   "
+    dta d"                    .                   "
+    dta d"        .                               "
+    dta d"                                        "
+    dta d"                                .       "
+    dta d"    .                                   "
+    dta d"                                        "
+    dta d".      .                                "
+    dta d"                .                       "
+    dta d"                                        "
+    dta d"                        .               "
+    dta d"                                        "
+    dta d"...          .                         ."
+scor        dta d"          "
 text1       dta d"Lives: "
 text_lives  dta d"05"
 text2       dta d" Score: "
-text_score  dta d"000 "
-text_over   dta d"     Game Over      "
-;dl          dta $70,$42,a(background2),02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,$41,a(dl) ; Display list
-dl          dta $70,$62,a(background2),$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$02,$41,a(dl) ; Display list
-dl_over     dta $70,$46,a(text_over),$41,a(dl)
+text_score  dta d"000"
+            dta d"          "
+text_over   dta d"               Game Over                "
+dl          dta $70,$62,a(background2-40),$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$02,$42,a(scor),$41,a(dl) ; Display list
+dl_over     dta $70,$42,a(text_over),$41,a(dl_over)
