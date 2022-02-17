@@ -1,39 +1,35 @@
 	org $8000       ; Start of code on page 8
-
-begin:
 	RAMTOP = 106    ; Returns last page number of available ram;
-	RTCLOK = $12    ;
-	VSCROL = $D405
+	RTCLOK = $12    ; Real time clock register`
+	VSCROL = $D405  ; Vertical scroll register
+	PM = $a000      ; Player/Missile start address
+	hposp0 = $d000  ; HPOSP0 - horizontal position of player0 (hardware shadow registry, save only)
+    hspos1 = $d001  ; HPOSP0 - horizontal position of player1 (hardware shadow registry, save only)
+    hspos2 = $d002  ; HPOSP0 - horizontal position of player2 (hardware shadow registry, save only)
 	px = $6000      ; Stores value of player0 horizontal position
 	score = $6001   ; Score address
     vscroll = $6002 ; Scroll status
-	pm = $a000      ; Player/Missile start address
-	py = 200        ; Player0 vertical position
 	p1yi = 10       ; Player1 vertical initial position
-	p2y1 = 190      ; Player2 vertical initial position
-	hposp0 = $d000  ; HPOSP0 - horizontal position of player0 (hardware shadow registry, save only)
-	hspos1 = $d001  ; HPOSP0 - horizontal position of player1 (hardware shadow registry, save only)
-	hspos2 = $d002  ; HPOSP0 - horizontal position of player1 (hardware shadow registry, save only)
-	del = 0         ; Stores value of move delay
-	lives = 5       ; Lives address
+	p2yi = 190      ; Player2 vertical initial position
+	lives = 5       ; Lives number
 	p2 = 0          ; Current Player2 vertical position
-    fine = 8
-	start_lives = 5 ; Number of lives on start
-    screen_size = 24 + 1
-    fin1 = 7
-	p1y = pm + $500 + p1yi
-	p2y = pm + $600 + p2y1
+    fine = 8        ; Fine scrolling scan lines (scan lines per antic mode line)
+    window = 24 + 1 ; Size of the scrolled screen window
+    fin1 = fine - 1 ; Fine scrolling initial scan line position
+    p0y = 200       ; Player0 vertical position
+	p1y = PM + $500 + p1yi
+	p2y = PM + $600 + p2yi
 
 initialize:
-	lda #screen_size
+	lda #window
 	sta vscroll     ; number of lines in one screen background
     lda #fin1       ; Set initial value
     sta fine        ; of fine scrolling
-    sta VSCROL       ; Set fine stroll register
+    sta VSCROL      ; Set fine stroll register
 	lda #0          ; Get black color
 	sta $2c8        ; Set border color
 	sta $2c6        ; Set background color
-	lda >pm         ; get high byte of pm
+	lda >PM         ; get high byte of PM
 	sta $d407	    ; PMBASE - msb of Player/Missile address
 	ldy #2          ; Show both player and missiles
 	sty $d01d       ; PMCTL Player/Missile control
@@ -142,7 +138,7 @@ initialize_player0:
 	ldx #0          ; Player1 height
 	loop5:
 	lda player,x
-	sta pm + $400 + py,x
+	sta PM + $400 + p0y,x
 	inx
 	cpx #15
 	bne loop5
@@ -170,7 +166,7 @@ initialize_player2:
 	cont:
 	lda px
 	sta hspos2       ; Horizontal positoin of Player2
-	lda #p2y1
+	lda #p2yi
 	sta p2
 	ldx #0          ; Player1 height
 	loop4:
@@ -187,8 +183,8 @@ move_player2_up:
 	bne loop3
 	rts
 	loop3:
-	lda pm + $600 ,x
-	sta pm + $600 ,x - 1
+	lda PM + $600 ,x
+	sta PM + $600 ,x - 1
 	inx
 	cpx p2 + 6
 	bne loop3
@@ -285,7 +281,7 @@ scroll_down_background:
     rts
 
 reset_background:
-    lda #screen_size
+    lda #window
     sta vscroll
     lda #<background2
     sta dl + 2
@@ -371,8 +367,8 @@ background1:
     dta d"                                        "
     dta d"..           .                         ."
 background2:
-    dta d"    ..           .               ..     "
-    dta d"                                        "
+    dta d"1   ..           .               ..     "
+    dta d"2                                       "
     dta d"                     .                  "
     dta d"                                        "
     dta d"    .                            .      "
@@ -403,5 +399,5 @@ text2       dta d" Score: "
 text_score  dta d"000"
             dta d"          "
 text_over   dta d"               Game Over                "
-dl          dta $70,$62,a(background2-40),$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$02,$42,a(scor),$41,a(dl) ; Display list
+dl          dta $70,$62,a(background2-40),$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$22,$02,$42,a(scor),$41,a(dl) ; Display list
 dl_over     dta $70,$42,a(text_over),$41,a(dl_over)
