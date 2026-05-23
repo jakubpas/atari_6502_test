@@ -14,6 +14,8 @@ begin:
 	lives = $6003   ; Lives address
 	start_lives = 5 ; Number of lives on start
 	p2 = $6004      ; Current Player2 vertical position
+	frm_cnt = $6005 ; Frame counter for enemy speed control
+	snd_timer = $6006 ; Sound effect timer
 	pinit = $6500   ; Player1 memory start address
 	p2init = $6550  ; Player2 memory start address
 
@@ -62,6 +64,11 @@ start_game:
 
 	lda #0
 	sta score
+	sta frm_cnt
+	sta snd_timer
+	sta $d201       ; silence sound
+	lda #1
+	sta $d01e       ; clear all collision registers
 	lda #$10
 	sta text_score
 	sta text_score + 1
@@ -75,6 +82,7 @@ start_game:
 
 loop:
 	jsr delay
+	jsr update_sound
 	jsr move_player1_down
 	jsr move_player2_up
 	jsr detect_collisions
@@ -118,34 +126,52 @@ get_random:
 	rts
 
 delay:
-	dec del
-	ldx del
-	cpx #0
-	bne delay
+	lda $14         ; VBI frame clock (RTCLOK low byte)
+	wvbl:
+	cmp $14
+	beq wvbl        ; wait until next frame
 	rts
 
 move_player1_down:
-	ldx p1yi + 15   ; Player1 height
+	inc frm_cnt
+	lda frm_cnt
+	cmp #2          ; move enemy every 2 frames
+	bne m1d_exit
+	lda #0
+	sta frm_cnt
+	lda p1yi        ; load current enemy Y from ZP $0A
+	clc
+	adc #15         ; point to bottom of sprite
+	tax
 	loop1:
 	lda $a500,x
-	sta $a500,x + 1
+	sta $a501,x     ; shift byte down one row
 	dex
+	cpx p1yi        ; reached top of sprite?
 	bne loop1
-	inc p1yi
+	lda #0
+	sta $a500,x     ; clear newly vacated top row
+	inc p1yi        ; advance sprite Y position
 
 	lda #255
 	cmp p1yi
 	beq initialize_player1
+	m1d_exit:
 	rts
 
 delete_player1:
-	ldx p1yi + 15   ; Player1 height
+	lda p1yi        ; load current enemy Y from ZP $0A
+	clc
+	adc #15         ; point to bottom of sprite
+	tax
 	delete_player1_loop1:
 	lda #0
-	sta $a500,x + 1
+	sta $a500,x     ; clear sprite byte
 	dex
+	cpx p1yi
 	bne delete_player1_loop1
-	inc p1yi
+	lda #0
+	sta $a500,x     ; clear top row
 	rts
 
 initialize_player1:
@@ -179,20 +205,26 @@ initialize_player2:
 	inx
 	cpx #6
 	bne loop4
+	jsr play_shoot
 	rts
 
 move_player2_up:
 	lda p2
 	cmp #0
-	bne loop3
-	rts
-	loop3:
-	lda pm + $600 ,x
-	sta pm + $600 ,x - 1
+	beq mpu_rts
+	lda p2
+	tax             ; X = current bullet Y (top of sprite)
+	ldy #5          ; shift 6 bytes (indices 5..0)
+	mpu_loop:
+	lda pm+$600,x   ; load sprite byte
+	sta pm+$600-1,x ; store one row up
 	inx
-	cpx p2 + 6
-	bne loop3
+	dey
+	bpl mpu_loop
+	lda #0
+	sta pm+$600-1,x ; clear old bottom row
 	dec p2
+	mpu_rts:
 	rts
 
 increase_score:
@@ -213,6 +245,7 @@ increase_score:
 	sty text_score  ; Store digit 1
 	stx text_score + 1 ; Store digit 2
 	sta text_score + 2 ; Store digit 3
+	jsr play_hit
 	jsr delete_player1
 	rts
 
@@ -225,6 +258,7 @@ decrease_lives:
 	ora #16         ; Make a chr
 	ldx #1
 	sta text_lives, x
+	jsr play_collision
 	jsr delete_player1
 	jsr initialize_player1
 	ldx lives
@@ -252,12 +286,51 @@ detect_collisions:
 game_over:
 	lda #1
 	sta $d01e       ; Reset collisions
+	lda #0
+	sta $d201       ; Silence sound
 	jsr delete_player1
 	lda #<dl_over   ; Set up display list`
 	sta $230
 	lda #>dl_over
 	sta $231
 	jmp start_loop
+
+play_shoot:
+	lda #50
+	sta $d200       ; AUDF1 - high frequency (laser)
+	lda #$a8        ; pure tone, volume 8
+	sta $d201       ; AUDC1
+	lda #8
+	sta snd_timer
+	rts
+
+play_hit:
+	lda #100
+	sta $d200       ; AUDF1 - medium frequency (hit)
+	lda #$a8
+	sta $d201
+	lda #12
+	sta snd_timer
+	rts
+
+play_collision:
+	lda #20
+	sta $d200       ; AUDF1 - low frequency (explosion)
+	lda #$c8        ; noise distortion, volume 8
+	sta $d201
+	lda #20
+	sta snd_timer
+	rts
+
+update_sound:
+	lda snd_timer
+	beq us_rts
+	dec snd_timer
+	bne us_rts
+	lda #0
+	sta $d201       ; silence when timer expires
+	us_rts:
+	rts
 
 	org pm + $400 + py
 	dta b(%00010000)

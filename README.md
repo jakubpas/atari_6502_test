@@ -19,18 +19,16 @@ to registers and accumulator.
 
 ## Idea External tools configuration:
 
-- Set working dir to $FileDir$
-
 - Compile:
 
 ```
-./local/bin/mads $FilePath$ -o:$FileNameWithoutExtension$.xex -p -t:$FileNameWithoutExtension$.lab -l:$FileNameWithoutExtension$.lst
+mads example.asm -o:example.xex
 ```
 
 - Run:
 
 ```
-/usr/bin/xterm -iconic -e atari800 -run $FileNameWithoutExtension$.xex
+atari800 example.xex
 ```
 
 ## Demo
@@ -39,7 +37,6 @@ https://www.youtube.com/watch?v=x5f42tWAR2A
 
 ## TODO
 
-- Sounds
 - Scrolled background
 - Enemy player horizontal movement
 - Multiple enemy players
